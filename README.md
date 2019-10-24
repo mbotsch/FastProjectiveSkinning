@@ -30,19 +30,19 @@ By holding ctrl + left mouse, you can select, drag and drop joints around. Addit
 
 We provide 4 examples:
 
-1. A simple cylinder, that can be tested via
+1. A simple cylinder, that can be tested via:
 
-	$ ./skinning ../data/cylinder/cylinder.ini
+    $ ./skinning ../data/cylinder/cylinder.ini
 
-2. A simple T-shaped mesh, that can be tested via
+2. A simple T-shaped mesh, that can be tested via:
 
 	$ ./skinning ../data/tbone/tbone.ini
 
-3. The armadillo model from the [Stanford 3D Scanning Repository](http://graphics.stanford.edu/data/3Dscanrep/) decimated to 3 percent of the original resolution for simulation and using the full resolution for visualization via upsampling. It can be tested via
+3. The armadillo model from the [Stanford 3D Scanning Repository](http://graphics.stanford.edu/data/3Dscanrep/) decimated to 3 percent of the original resolution for simulation and using the full resolution for visualization via upsampling. It can be tested via:
 
 	$ ./skinning ../data/armadillo/armadillo.ini
 
-4. A human male model from [free3D.com](https://free3d.com/3d-model/male-base-mesh-6682.html), slightly modified and decimated to 20 percent of the original resolution for simulation and using the full resolution for visualization via upsampling. It can be tested via
+4. A human male model from [free3D.com](https://free3d.com/3d-model/male-base-mesh-6682.html), slightly modified and decimated to 20 percent of the original resolution for simulation and using the full resolution for visualization via upsampling. It can be tested via:
 
 	$ ./skinning ../data/maleChar/maleChar.ini
 
@@ -59,7 +59,7 @@ We provide 4 examples:
 
 instead of using an .ini file you can also use the files (in the same order as above) as command line arguments directly.
 
-### Building your Skeleton - the .skel file
+### Building your Skeleton (.skel files)
 
 If you have just a mesh that you want so simulate, you can use our programm to build a skeleton file in a very simple way. Just give it the skin-mesh as argument, like:
 
@@ -101,8 +101,10 @@ The collision handling can be toggled via the GUI. If you want to handle collisi
 Collisions can cause crashs if not used carefully. This will be fixed in future.
 
 
-## License todo
+## License
 
-This code is available under GPL. It can be referenced by using: [todo].
+This code is available under [GPL](LICENSE).
+
+In cases where the constraints of the Open Source license prevent you from using FastProjectiveSkinning, please contact us.
 
 
