@@ -1,0 +1,5 @@
+4
+-6 0 0 joint0 root
+-3 0 0 joint1 joint0
+1 0 0 joint2 joint1
+6 0 0 joint3 joint2
