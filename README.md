@@ -1,9 +1,9 @@
 # Fast Projective Skinning
 
-This is an implementation of the Fast Projective Skinning ([FPS](https://graphics.uni-bielefeld.de/downloads/publications/2019/mig19.pdf)) approach. To get started, just clone the
+This is an implementation of the Fast Projective Skinning [Fast Projective Skinning](https://graphics.uni-bielefeld.de/downloads/publications/2019/mig19.pdf) approach from Martin Komaritzan and Mario Botsch. To get started, just clone the
 repository recursively:
 
-    $ git clone --recursive https://github.com/MarioBotsch/FastProjectiveSkinning.git
+    $ git clone --recursive https://github.com/mbotsch/FastProjectiveSkinning.git
 
 ## Dependencies
 
