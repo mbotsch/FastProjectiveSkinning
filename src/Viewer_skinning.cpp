@@ -762,7 +762,7 @@ void Skinning_Viewer::mouse(int _button, int _action, int _mods)
 
 
     // CTRL pressed -> drag joints around
-    if (_action == GLFW_PRESS && ! animate_)
+    if (_action == GLFW_PRESS)
     {
         // select joint
         if (_button==GLFW_MOUSE_BUTTON_LEFT)
@@ -815,8 +815,9 @@ void Skinning_Viewer::motion(double _x, double _y)
     }
 
 
-    if (left_mouse_pressed() && !animate_)
+    if (left_mouse_pressed())
     {
+        animate_ = false;
         using namespace Projective_Skinning;
 
         Vec3 p = animator_.mesh_.skeleton_.joint_positions_.col(animator_.get_active_bone());

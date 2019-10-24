@@ -44,7 +44,7 @@ We provide 4 examples:
 
 4. A human male model from [free3D.com](https://free3d.com/3d-model/male-base-mesh-6682.html), slightly modified and decimated to 20 percent of the original resolution for simulation and using the full resolution for visualization via upsampling. It can be tested via:
 
-	$ ./skinning ../data/maleChar/maleChar.ini
+	$ ./skinning ../data/male/male.ini
 
 
 ### .ini Files
