@@ -291,6 +291,9 @@ static const char *_cudaGetErrorEnum(cudaError_t error) {
     /* Since CUDA 9.0*/
     case cudaErrorCooperativeLaunchTooLarge:
       return "cudaErrorCooperativeLaunchTooLarge";
+    
+    default:
+	return "<unknown>";
   }
 
   return "<unknown>";
