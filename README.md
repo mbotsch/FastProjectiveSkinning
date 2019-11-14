@@ -9,11 +9,24 @@ repository recursively:
 
 If you are just interested in the CPU-Version, simply build this project and run it. If you are interestend in the GPU-Version, you will have to install the CUDA libraries. The code was tested for CUDA versions 9.2 and 10.1 but others should also work. Try one of CUDA's examples to make sure it works properly.
 
-## Configure and build:
+## Configure and Build
+
+### Linux & MacOS
 
     $ cd FastProjectiveSkinning && mkdir build && cd build && cmake .. && make
 
 This will automatically build the project and its dependecies.
+
+### Windows
+
+*Known Issue*: On windows systems, there is currently an issue with the latest eigen release in the pmp-library and CUDA. To fix this, you can clone or download the latest [eigen development version](https://github.com/eigenteam/eigen-git-mirror) and replace the version in FastProjectiveSkinning/external/pmp-library/external/eigen.
+
+On windows systems, the easiest way to run the code is using the *x64 Native Tools Command Promt* of your Visual Studio version. In th command promt, navigate into the FastProjectiveSkinning folder and build via
+
+    $ mkdir build
+    $ cd build
+    $ cmake -G "NMake Makefiles" -DCMAKE_BUILD_TYPE=RELEASE ..
+    $ nmake
 
 ## Running
 
