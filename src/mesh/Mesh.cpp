@@ -863,7 +863,7 @@ void Mesh::shrink_pair_smoothing(Mat3X& shrinkV, IndexVector &vertexIsIgnored)
         }
 
 
-        #pragma omp parallel for
+        #pragma omp parallel for reduction(+:error)
         for(usint i = 0; i < shrinkV.cols(); i++)
         {
             if(vertexIsIgnored[i]) continue;

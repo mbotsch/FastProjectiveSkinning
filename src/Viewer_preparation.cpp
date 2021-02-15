@@ -68,12 +68,13 @@ Preparation_Viewer::~Preparation_Viewer()
     if (ogl_skeleton_mesh_.vertex_array)       glDeleteVertexArrays(1, &ogl_skeleton_mesh_.vertex_array);
 }
 
-bool Preparation_Viewer::load_mesh(const char *filename)
+void Preparation_Viewer::load_mesh(const char *filename)
 {
-    bool success = MeshViewer::load_mesh(filename);
-    if(!success)
+    MeshViewer::load_mesh(filename);
+    if(mesh_.n_vertices() == 0)
     {
-        return !success;
+    	std::cerr << "Mesh cannot be read from " << filename << std::endl;
+    	return;
     }
 
     mesh_HR_ = mesh_;
@@ -101,7 +102,9 @@ bool Preparation_Viewer::load_mesh(const char *filename)
         joint_indices_.push_back(1);
 
         Projective_Skinning::Mat3X pos(3,joint_positions_.size());
-        std::memcpy(pos.data(), joint_positions_.data(), joint_positions_.size()*sizeof(Eigen::Vector3f)); // todo move this into init and just use float pointer as argument
+        for(size_t i = 0; i < joint_positions_.size(); i++)
+        	pos.col(i) = joint_positions_[i];
+
         volumetric_skeleton_.init(pos,joint_indices_,skin_vertices_);
     }
     else
@@ -109,12 +112,12 @@ bool Preparation_Viewer::load_mesh(const char *filename)
         volumetric_skeleton_.init(skel_filename_.c_str(),skin_vertices_);
         joint_indices_ = volumetric_skeleton_.bone_indices_;
         joint_positions_.resize(volumetric_skeleton_.joint_positions_.cols());
-        std::memcpy(joint_positions_.data(), volumetric_skeleton_.joint_positions_.data(), volumetric_skeleton_.joint_positions_.cols()*sizeof(Eigen::Vector3f)); // todo move this into init and just use float pointer as argument
+        for(size_t i = 0; i < joint_positions_.size(); i++)
+        	joint_positions_[i] = volumetric_skeleton_.joint_positions_.col(i);
     }
 
     init_ogl_buffers(ogl_skeleton_mesh_,volumetric_skeleton_.vertices_, volumetric_skeleton_.normals_, volumetric_skeleton_.indices_);
 
-    return !success;
 }
 
 void Preparation_Viewer::build_from_ini(const char *ini_filename)

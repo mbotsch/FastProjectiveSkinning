@@ -43,7 +43,7 @@ public:
 
     ~Preparation_Viewer();
 
-    bool load_mesh(const char *filename) override;
+    void load_mesh(const char *filename) override;
 
     void build_from_ini(const char* ini_filename);
 
