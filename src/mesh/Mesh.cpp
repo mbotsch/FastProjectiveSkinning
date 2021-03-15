@@ -357,7 +357,7 @@ void Mesh::update_anchors()
 
 
         #pragma omp parallel for
-        for(usint i = base_simple_rigid_ - skin_.num_vertices; i < skin_.num_vertices + num_ignored_ + num_sliding_references_; i++)
+        for(int i = base_simple_rigid_ - (int)skin_.num_vertices; i < (int)skin_.num_vertices + num_ignored_ + num_sliding_references_; i++)
         {
             usint vi = i + skin_.num_vertices;
             vertices_.col(vi) = skeleton_.transformations_[transform_indices_[i]] * orig_vertices_.col(vi);
@@ -375,7 +375,7 @@ void Mesh::transform_collision_tet_basepoints_()
     if(vertices_.cols() > skin_.num_vertices)
     {
         #pragma omp parallel for
-        for(usint i = 0; i < collision_tet_basepoints_.cols(); i++)
+        for(int i = 0; i < collision_tet_basepoints_.cols(); i++)
         {
             collision_tet_basepoints_.col(i) = skeleton_.transformations_[coltet_transform_indices_[i]]*orig_collision_tet_basepoints_.col(i);
         }
@@ -841,7 +841,7 @@ void Mesh::shrink_pair_smoothing(Mat3X& shrinkV, IndexVector &vertexIsIgnored)
         laplace.setZero();
 
         #pragma omp parallel for
-        for(usint i = 0; i < shrinkV.cols(); i++)
+        for(int i = 0; i < shrinkV.cols(); i++)
         {
 
             if(vertexIsIgnored[i]) continue;
@@ -864,7 +864,7 @@ void Mesh::shrink_pair_smoothing(Mat3X& shrinkV, IndexVector &vertexIsIgnored)
 
 
         #pragma omp parallel for reduction(+:error)
-        for(usint i = 0; i < shrinkV.cols(); i++)
+        for(int i = 0; i < shrinkV.cols(); i++)
         {
             if(vertexIsIgnored[i]) continue;
 
@@ -1135,7 +1135,7 @@ void Mesh::init_simulation_tets()
 void Mesh::compute_normals()
 {
     vertex_normals_.setZero();
-#pragma omp parallel
+    #pragma omp parallel
     {
         #pragma omp for
         for (int i = 0; i < (int)skin_.all_indices.size(); i+=3)
@@ -1313,7 +1313,7 @@ void Mesh::init_collision_tets()
 void Mesh::upsample()
 {
     #pragma omp parallel for
-    for(usint i = 0; i < high_res_vertices_.cols(); i++)
+    for(int i = 0; i < high_res_vertices_.cols(); i++)
     {
         Vec3 v = Vec3(0,0,0);
         Vec3 n = Vec3(0,0,0);
@@ -1470,7 +1470,7 @@ void Mesh::init_sliding_joints(Mat3X &sj_refs, std::map<usint, IndexVector> &sjI
 void Mesh::skin_sliding()
 {
 
-#pragma omp parallel for
+    #pragma omp parallel for
     for(int i = 0; i < num_sliding_; i++)
     {
         SJ_Interpolation_Parameters &sjp = sj_parameters_[i];

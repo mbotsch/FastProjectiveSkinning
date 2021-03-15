@@ -69,7 +69,7 @@ void Collision_Detection::test_for_collsions(const Mat3X& mesh_vertices, const I
     std::vector<IndexVector> cv(tets.size()/4);
 
     #pragma omp parallel for
-    for(unsigned int t = 0; t < tets.size(); t+=4)
+    for(int t = 0; t < (int)tets.size(); t+=4)
     {
         usint ti[4];
 
