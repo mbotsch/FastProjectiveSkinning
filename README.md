@@ -19,8 +19,6 @@ This will automatically build the project and its dependecies.
 
 ### Windows
 
-*Known Issue*: On windows systems, there is currently an issue with the latest eigen release in the pmp-library and CUDA. To fix this, you can clone or download the latest [eigen development version](https://github.com/eigenteam/eigen-git-mirror) and replace the version in FastProjectiveSkinning/external/pmp-library/external/eigen.
-
 On windows systems, the easiest way to run the code is using the *x64 Native Tools Command Promt* of your Visual Studio version. In th command promt, navigate into the FastProjectiveSkinning folder and build via
 
     $ mkdir build

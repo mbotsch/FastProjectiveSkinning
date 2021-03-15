@@ -27,12 +27,15 @@ if((UNIX OR APPLE) AND CMAKE_COMPILER_IS_GNUCXX)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -msse2 -std=c++14 -pedantic -Wall -Wextra")
 endif()
 
-if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang" AND NOT EMSCRIPTEN)
+if(${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang" AND NOT EMSCRIPTEN)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -pedantic -Wall -Wextra -Wno-unused-parameter")
 endif()
 
 if(WIN32)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D_USE_MATH_DEFINES -DNOMINMAX -D_CRT_SECURE_NO_WARNINGS")
+  add_compile_options(/wd4267) # conversion from size_t
+  add_compile_options(/wd4244) # conversion from double to float
+  add_compile_options(/wd4305) # truncation from double to float
 endif()
 
 if (EMSCRIPTEN)
