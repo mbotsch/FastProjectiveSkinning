@@ -18,7 +18,7 @@ add_subdirectory(external/pmp-library)
 # add include directories
 include_directories(${PROJECT_SOURCE_DIR}/external/pmp-library/src)
 include_directories(${PROJECT_SOURCE_DIR}/external/pmp-library/external/imgui)
-include_directories(${PROJECT_SOURCE_DIR}/external/pmp-library/external/eigen)
+#include_directories(${PROJECT_SOURCE_DIR}/external/pmp-library/external/eigen)
 include_directories(${PROJECT_SOURCE_DIR}/external/pmp-library/external/glfw/include)
 include_directories(${PROJECT_SOURCE_DIR}/external/pmp-library/external/glew/include)
 
@@ -39,6 +39,10 @@ if (EMSCRIPTEN)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -s ALLOW_MEMORY_GROWTH=1 -s USE_GLFW=3 -s WASM=0 -s USE_WEBGL2=1")
     set(CMAKE_EXECUTABLE_SUFFIX ".html")
 endif()
+
+# Eigen
+set(EIGEN_SOURCE_DIR "external/eigen")
+include_directories(${EIGEN_SOURCE_DIR})
 
 # openmp
 find_package(OpenMP)
