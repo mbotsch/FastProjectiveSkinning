@@ -103,6 +103,7 @@ protected:
 
     void init_cuda_data();
     void init_cuda_normals();
+    void init_cuda_textures();
     void init_cuda_upsampling(const Projective_Skinning::IndexVector &us_indices, std::vector<std::vector<unsigned int> > &us_neighbors,
                                 std::vector<std::vector<float> > &us_Nij , std::vector<std::vector<float> > &us_normal_Nij, bool duplicate);
 
@@ -129,6 +130,8 @@ protected:
     std::vector<float> orig_diag_values_, current_diag_values_;
 	
 	float *d_d_, *d_q_, *d_r_, *h_greek_, *d_greek_;
+
+    cudaTextureObject_t tex_points_, tex_normals_v_, tex_normals_f_, tex_proj_, tex_dd_;
 	
     cudaStream_t stream1_, stream2_;
     cudaEvent_t event1_, event2_;

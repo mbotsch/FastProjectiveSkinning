@@ -9,9 +9,6 @@
 #include <stdio.h>
 #include "svd/svd3_cuda.h"
 
-texture<float> rhs_tex;
-texture<float> normal_tex;
-
 #define THREADS_PER_BLOCK 64
 #define THREADS_PER_BLOCK_MOMENTUM 96
 #define D_S_ELLROWS 4
@@ -21,7 +18,7 @@ texture<float> normal_tex;
 //global kernels
 //---------------
 
-__global__ void k_init_PCG(const float* diavalues,const float* ellvalues, const int* ellcols,const float* crsvalues, const int* crscols, const int* row_ptr, float* d, float *r, float* greek, float* rhs, const int n_rows)
+__global__ void k_init_PCG(cudaTextureObject_t tex_points, const float* diavalues,const float* ellvalues, const int* ellcols,const float* crsvalues, const int* crscols, const int* row_ptr, float* d, float *r, float* greek, float* rhs, const int n_rows)
 {
     __shared__ float temp[3][THREADS_PER_BLOCK];
     const int id = blockIdx.x * blockDim.x + threadIdx.x;
@@ -36,9 +33,9 @@ __global__ void k_init_PCG(const float* diavalues,const float* ellvalues, const 
     {
         //init with diag
         float diag = diavalues[id];
-        valr1 = diag*tex1Dfetch(rhs_tex, 3*id);
-        valr2 = diag*tex1Dfetch(rhs_tex, 3*id + 1);
-        valr3 = diag*tex1Dfetch(rhs_tex, 3*id + 2);
+        valr1 = diag*tex1Dfetch<float>(tex_points, 3*id);
+        valr2 = diag*tex1Dfetch<float>(tex_points, 3*id + 1);
+        valr3 = diag*tex1Dfetch<float>(tex_points, 3*id + 2);
 		
         //ell part
         for(int i = 0; i < D_S_ELLROWS; i++)
@@ -48,9 +45,9 @@ __global__ void k_init_PCG(const float* diavalues,const float* ellvalues, const 
             if(fabs(ellval) > 0.0)
             {
                 int ellcol = 3*ellcols[i*n_rows + id];
-                valr1 += ellval*tex1Dfetch(rhs_tex, ellcol);
-                valr2 += ellval*tex1Dfetch(rhs_tex, ellcol + 1);
-                valr3 += ellval*tex1Dfetch(rhs_tex, ellcol + 2);
+                valr1 += ellval*tex1Dfetch<float>(tex_points, ellcol);
+                valr2 += ellval*tex1Dfetch<float>(tex_points, ellcol + 1);
+                valr3 += ellval*tex1Dfetch<float>(tex_points, ellcol + 2);
             }
         }
 		
@@ -61,9 +58,9 @@ __global__ void k_init_PCG(const float* diavalues,const float* ellvalues, const 
         {
             float csr = crsvalues[i];
             int crscol = 3*crscols[i];
-            valr1 += csr*tex1Dfetch(rhs_tex, crscol);
-            valr2 += csr*tex1Dfetch(rhs_tex, crscol + 1);
-            valr3 += csr*tex1Dfetch(rhs_tex, crscol + 2);
+            valr1 += csr*tex1Dfetch<float>(tex_points, crscol);
+            valr2 += csr*tex1Dfetch<float>(tex_points, crscol + 1);
+            valr3 += csr*tex1Dfetch<float>(tex_points, crscol + 2);
         }
 		
         valr1 = rhs[id] - valr1;
@@ -117,7 +114,7 @@ __global__ void k_init_PCG(const float* diavalues,const float* ellvalues, const 
 }
 
 
-__global__ void k_init_PCG_collisions(const float* diavalues,const float* ellvalues, const int* ellcols,
+__global__ void k_init_PCG_collisions(cudaTextureObject_t tex_points, const float* diavalues,const float* ellvalues, const int* ellcols,
                                                               const float* crsvalues, const int* crscols, const int* row_ptr,
                                                               const float* collisioncrsvalues, const int* collisioncrscols, const int* collisionrow_ptr,
                                                               float* d, float *r, float* greek, float* rhs, const int n_rows)
@@ -135,9 +132,9 @@ __global__ void k_init_PCG_collisions(const float* diavalues,const float* ellval
     {
         //init with diag
         float diag = diavalues[id];
-        valr1 = diag*tex1Dfetch(rhs_tex, 3*id);
-        valr2 = diag*tex1Dfetch(rhs_tex, 3*id + 1);
-        valr3 = diag*tex1Dfetch(rhs_tex, 3*id + 2);
+        valr1 = diag*tex1Dfetch<float>(tex_points, 3*id);
+        valr2 = diag*tex1Dfetch<float>(tex_points, 3*id + 1);
+        valr3 = diag*tex1Dfetch<float>(tex_points, 3*id + 2);
 
         //ell part
         for(int i = 0; i < D_S_ELLROWS; i++)
@@ -147,9 +144,9 @@ __global__ void k_init_PCG_collisions(const float* diavalues,const float* ellval
             if(fabs(ellval) > 0.0)
             {
                 int ellcol = 3*ellcols[i*n_rows + id];
-                valr1 += ellval*tex1Dfetch(rhs_tex, ellcol);
-                valr2 += ellval*tex1Dfetch(rhs_tex, ellcol + 1);
-                valr3 += ellval*tex1Dfetch(rhs_tex, ellcol + 2);
+                valr1 += ellval*tex1Dfetch<float>(tex_points, ellcol);
+                valr2 += ellval*tex1Dfetch<float>(tex_points, ellcol + 1);
+                valr3 += ellval*tex1Dfetch<float>(tex_points, ellcol + 2);
             }
         }
 
@@ -160,9 +157,9 @@ __global__ void k_init_PCG_collisions(const float* diavalues,const float* ellval
         {
             float csr = crsvalues[i];
             int crscol = 3*crscols[i];
-            valr1 += csr*tex1Dfetch(rhs_tex, crscol);
-            valr2 += csr*tex1Dfetch(rhs_tex, crscol + 1);
-            valr3 += csr*tex1Dfetch(rhs_tex, crscol + 2);
+            valr1 += csr*tex1Dfetch<float>(tex_points, crscol);
+            valr2 += csr*tex1Dfetch<float>(tex_points, crscol + 1);
+            valr3 += csr*tex1Dfetch<float>(tex_points, crscol + 2);
         }
 
         start = collisionrow_ptr[id];
@@ -171,9 +168,9 @@ __global__ void k_init_PCG_collisions(const float* diavalues,const float* ellval
         {
             float csr = collisioncrsvalues[i];
             int crscol = 3*collisioncrscols[i];
-            valr1 += csr*tex1Dfetch(rhs_tex, crscol);
-            valr2 += csr*tex1Dfetch(rhs_tex, crscol + 1);
-            valr3 += csr*tex1Dfetch(rhs_tex, crscol + 2);
+            valr1 += csr*tex1Dfetch<float>(tex_points, crscol);
+            valr2 += csr*tex1Dfetch<float>(tex_points, crscol + 1);
+            valr3 += csr*tex1Dfetch<float>(tex_points, crscol + 2);
         }
 
         valr1 = rhs[id] - valr1;
@@ -229,7 +226,7 @@ __global__ void k_init_PCG_collisions(const float* diavalues,const float* ellval
 
 
 
-__global__ void k_PCG1(const float* diavalues,const float* ellvalues, const int* ellcols,
+__global__ void k_PCG1(cudaTextureObject_t tex_dd, const float* diavalues,const float* ellvalues, const int* ellcols,
                                   const float* crsvalues, const int* crscols, const int* row_ptr,
                                   float *q,
                                   float* greek, const int size)
@@ -247,9 +244,9 @@ __global__ void k_PCG1(const float* diavalues,const float* ellvalues, const int*
     for(int i = blockstart + tid; i < blockend; i+= THREADS_PER_BLOCK)
     {
         float crsval = crsvalues[i];
-        s_data[3*(i - blockstart)] = crsval*tex1Dfetch(rhs_tex, crscols[i]);
-        s_data[3*(i - blockstart) + 1] = crsval*tex1Dfetch(rhs_tex, crscols[i] + size);
-        s_data[3*(i - blockstart) + 2] = crsval*tex1Dfetch(rhs_tex, crscols[i] + 2*size);
+        s_data[3*(i - blockstart)] = crsval*tex1Dfetch<float>(tex_dd, crscols[i]);
+        s_data[3*(i - blockstart) + 1] = crsval*tex1Dfetch<float>(tex_dd, crscols[i] + size);
+        s_data[3*(i - blockstart) + 2] = crsval*tex1Dfetch<float>(tex_dd, crscols[i] + 2*size);
     }
     __syncthreads();
 
@@ -271,9 +268,9 @@ __global__ void k_PCG1(const float* diavalues,const float* ellvalues, const int*
 
         //init with diag
         float diag = diavalues[id];
-        d1 = tex1Dfetch(rhs_tex, id);
-        d2 = tex1Dfetch(rhs_tex, id + size);
-        d3 = tex1Dfetch(rhs_tex, id + 2*size);
+        d1 = tex1Dfetch<float>(tex_dd, id);
+        d2 = tex1Dfetch<float>(tex_dd, id + size);
+        d3 = tex1Dfetch<float>(tex_dd, id + 2*size);
         val0 = diag*d1;
         val1 = diag*d2;
         val2 = diag*d3;
@@ -286,9 +283,9 @@ __global__ void k_PCG1(const float* diavalues,const float* ellvalues, const int*
             if(fabs(ellval) > 0.0)
             {
                 int ellcol = ellcols[i*size + id];
-                val0 += ellval*tex1Dfetch(rhs_tex, ellcol);
-                val1 += ellval*tex1Dfetch(rhs_tex, ellcol + size);
-                val2 += ellval*tex1Dfetch(rhs_tex, ellcol + 2*size);
+                val0 += ellval*tex1Dfetch<float>(tex_dd, ellcol);
+                val1 += ellval*tex1Dfetch<float>(tex_dd, ellcol + size);
+                val2 += ellval*tex1Dfetch<float>(tex_dd, ellcol + 2*size);
             }
         }
 
@@ -341,7 +338,7 @@ __global__ void k_PCG1(const float* diavalues,const float* ellvalues, const int*
     }
 }
 
-__global__ void k_PCG1_collisions(const float* diavalues,const float* ellvalues, const int* ellcols,
+__global__ void k_PCG1_collisions(cudaTextureObject_t tex_dd, const float* diavalues,const float* ellvalues, const int* ellcols,
                                   const float* crsvalues, const int* crscols, const int* row_ptr,
                                   const float* collisioncrsvalues, const int* collisioncrscols, const int* collisionrow_ptr,
                                   float *q,
@@ -363,17 +360,17 @@ __global__ void k_PCG1_collisions(const float* diavalues,const float* ellvalues,
     for(int i = blockstart + tid; i < blockend; i+= THREADS_PER_BLOCK)
     {
         float crsval = crsvalues[i];
-        s_data[3*(i - blockstart)] = crsval*tex1Dfetch(rhs_tex, crscols[i]);
-        s_data[3*(i - blockstart) + 1] = crsval*tex1Dfetch(rhs_tex, crscols[i] + size);
-        s_data[3*(i - blockstart) + 2] = crsval*tex1Dfetch(rhs_tex, crscols[i] + 2*size);
+        s_data[3*(i - blockstart)] = crsval*tex1Dfetch<float>(tex_dd, crscols[i]);
+        s_data[3*(i - blockstart) + 1] = crsval*tex1Dfetch<float>(tex_dd, crscols[i] + size);
+        s_data[3*(i - blockstart) + 2] = crsval*tex1Dfetch<float>(tex_dd, crscols[i] + 2*size);
     }
 
     for(int i = collisionblockstart + tid; i < collisionblockend; i+= THREADS_PER_BLOCK)
     {
         float crsval = collisioncrsvalues[i];
-        s_data[3*(i - collisionblockstart + blockend - blockstart)] = crsval*tex1Dfetch(rhs_tex, collisioncrscols[i]);
-        s_data[3*(i - collisionblockstart + blockend - blockstart) + 1] = crsval*tex1Dfetch(rhs_tex, collisioncrscols[i] + size);
-        s_data[3*(i - collisionblockstart + blockend - blockstart) + 2] = crsval*tex1Dfetch(rhs_tex, collisioncrscols[i] + 2*size);
+        s_data[3*(i - collisionblockstart + blockend - blockstart)] = crsval*tex1Dfetch<float>(tex_dd, collisioncrscols[i]);
+        s_data[3*(i - collisionblockstart + blockend - blockstart) + 1] = crsval*tex1Dfetch<float>(tex_dd, collisioncrscols[i] + size);
+        s_data[3*(i - collisionblockstart + blockend - blockstart) + 2] = crsval*tex1Dfetch<float>(tex_dd, collisioncrscols[i] + 2*size);
     }
 
     __syncthreads();
@@ -396,9 +393,9 @@ __global__ void k_PCG1_collisions(const float* diavalues,const float* ellvalues,
 
         //init with diag
         float diag = diavalues[id];
-        d1 = tex1Dfetch(rhs_tex, id);
-        d2 = tex1Dfetch(rhs_tex, id + size);
-        d3 = tex1Dfetch(rhs_tex, id + 2*size);
+        d1 = tex1Dfetch<float>(tex_dd, id);
+        d2 = tex1Dfetch<float>(tex_dd, id + size);
+        d3 = tex1Dfetch<float>(tex_dd, id + 2*size);
         val0 = diag*d1;
         val1 = diag*d2;
         val2 = diag*d3;
@@ -411,9 +408,9 @@ __global__ void k_PCG1_collisions(const float* diavalues,const float* ellvalues,
             if(fabs(ellval) > 0.0)
             {
                 int ellcol = ellcols[i*size + id];
-                val0 += ellval*tex1Dfetch(rhs_tex, ellcol);
-                val1 += ellval*tex1Dfetch(rhs_tex, ellcol + size);
-                val2 += ellval*tex1Dfetch(rhs_tex, ellcol + 2*size);
+                val0 += ellval*tex1Dfetch<float>(tex_dd, ellcol);
+                val1 += ellval*tex1Dfetch<float>(tex_dd, ellcol + size);
+                val2 += ellval*tex1Dfetch<float>(tex_dd, ellcol + 2*size);
             }
         }
 
@@ -581,7 +578,7 @@ __global__ void k_PCG3(const float *d_diagvalues, float* r, float *d, float *gre
 }
 
 
-__global__ void k_local_soft(const float* edgesinv, float* Rs, const int* tets, const float* tetweights, const int ntets, const int nanchors)
+__global__ void k_local_soft(cudaTextureObject_t tex_points, const float* edgesinv, float* Rs, const int* tets, const float* tetweights, const int ntets, const int nanchors)
 {
     __shared__ float s_R[9*THREADS_PER_BLOCK];
     const int id = blockIdx.x * blockDim.x + threadIdx.x;
@@ -593,19 +590,19 @@ __global__ void k_local_soft(const float* edgesinv, float* Rs, const int* tets, 
         const int ti[] = {tets[id],tets[id + ntets],tets[id + 2*ntets],tets[id + 3*ntets]};
 
         float p0[3];
-        p0[0] = tex1Dfetch(rhs_tex, 3*ti[0]);
-        p0[1] = tex1Dfetch(rhs_tex, 3*ti[0] + 1);
-        p0[2] = tex1Dfetch(rhs_tex, 3*ti[0] + 2);
+        p0[0] = tex1Dfetch<float>(tex_points, 3*ti[0]);
+        p0[1] = tex1Dfetch<float>(tex_points, 3*ti[0] + 1);
+        p0[2] = tex1Dfetch<float>(tex_points, 3*ti[0] + 2);
 
-        float a0 = tex1Dfetch(rhs_tex, 3*ti[1] + 0) - p0[0];
-        float a1 = tex1Dfetch(rhs_tex, 3*ti[1] + 1) - p0[1];
-        float a2 = tex1Dfetch(rhs_tex, 3*ti[1] + 2) - p0[2];
-        float a3 = tex1Dfetch(rhs_tex, 3*ti[2] + 0) - p0[0];
-        float a4 = tex1Dfetch(rhs_tex, 3*ti[2] + 1) - p0[1];
-        float a5 = tex1Dfetch(rhs_tex, 3*ti[2] + 2) - p0[2];
-        float a6 = tex1Dfetch(rhs_tex, 3*ti[3] + 0) - p0[0];
-        float a7 = tex1Dfetch(rhs_tex, 3*ti[3] + 1) - p0[1];
-        float a8 = tex1Dfetch(rhs_tex, 3*ti[3] + 2) - p0[2];
+        float a0 = tex1Dfetch<float>(tex_points, 3*ti[1] + 0) - p0[0];
+        float a1 = tex1Dfetch<float>(tex_points, 3*ti[1] + 1) - p0[1];
+        float a2 = tex1Dfetch<float>(tex_points, 3*ti[1] + 2) - p0[2];
+        float a3 = tex1Dfetch<float>(tex_points, 3*ti[2] + 0) - p0[0];
+        float a4 = tex1Dfetch<float>(tex_points, 3*ti[2] + 1) - p0[1];
+        float a5 = tex1Dfetch<float>(tex_points, 3*ti[2] + 2) - p0[2];
+        float a6 = tex1Dfetch<float>(tex_points, 3*ti[3] + 0) - p0[0];
+        float a7 = tex1Dfetch<float>(tex_points, 3*ti[3] + 1) - p0[1];
+        float a8 = tex1Dfetch<float>(tex_points, 3*ti[3] + 2) - p0[2];
 
         float b0 = edgesinv[id];
         float b1 = edgesinv[id + ntets];
@@ -669,7 +666,7 @@ __global__ void k_local_soft(const float* edgesinv, float* Rs, const int* tets, 
     }
 }
 
-__global__ void k_local_hard(const float* edgesinv, float* Rs, const float* bc, const int* tets, const float* tetweights, const int ntets)
+__global__ void k_local_hard(cudaTextureObject_t tex_points, const float* edgesinv, float* Rs, const float* bc, const int* tets, const float* tetweights, const int ntets)
 {
     __shared__ float s_R[9*THREADS_PER_BLOCK];
     const int id = blockIdx.x * blockDim.x + threadIdx.x;
@@ -681,19 +678,19 @@ __global__ void k_local_hard(const float* edgesinv, float* Rs, const float* bc, 
         const int ti[] = {tets[id],tets[id + ntets],tets[id + 2*ntets],tets[id + 3*ntets]};
 
         float p0[3];
-        p0[0] = tex1Dfetch(rhs_tex, 3*ti[0]);
-        p0[1] = tex1Dfetch(rhs_tex, 3*ti[0] + 1);
-        p0[2] = tex1Dfetch(rhs_tex, 3*ti[0] + 2);
+        p0[0] = tex1Dfetch<float>(tex_points, 3*ti[0]);
+        p0[1] = tex1Dfetch<float>(tex_points, 3*ti[0] + 1);
+        p0[2] = tex1Dfetch<float>(tex_points, 3*ti[0] + 2);
 
-        float a0 = tex1Dfetch(rhs_tex, 3*ti[1] + 0) - p0[0];
-        float a1 = tex1Dfetch(rhs_tex, 3*ti[1] + 1) - p0[1];
-        float a2 = tex1Dfetch(rhs_tex, 3*ti[1] + 2) - p0[2];
-        float a3 = tex1Dfetch(rhs_tex, 3*ti[2] + 0) - p0[0];
-        float a4 = tex1Dfetch(rhs_tex, 3*ti[2] + 1) - p0[1];
-        float a5 = tex1Dfetch(rhs_tex, 3*ti[2] + 2) - p0[2];
-        float a6 = tex1Dfetch(rhs_tex, 3*ti[3] + 0) - p0[0];
-        float a7 = tex1Dfetch(rhs_tex, 3*ti[3] + 1) - p0[1];
-        float a8 = tex1Dfetch(rhs_tex, 3*ti[3] + 2) - p0[2];
+        float a0 = tex1Dfetch<float>(tex_points, 3*ti[1] + 0) - p0[0];
+        float a1 = tex1Dfetch<float>(tex_points, 3*ti[1] + 1) - p0[1];
+        float a2 = tex1Dfetch<float>(tex_points, 3*ti[1] + 2) - p0[2];
+        float a3 = tex1Dfetch<float>(tex_points, 3*ti[2] + 0) - p0[0];
+        float a4 = tex1Dfetch<float>(tex_points, 3*ti[2] + 1) - p0[1];
+        float a5 = tex1Dfetch<float>(tex_points, 3*ti[2] + 2) - p0[2];
+        float a6 = tex1Dfetch<float>(tex_points, 3*ti[3] + 0) - p0[0];
+        float a7 = tex1Dfetch<float>(tex_points, 3*ti[3] + 1) - p0[1];
+        float a8 = tex1Dfetch<float>(tex_points, 3*ti[3] + 2) - p0[2];
 
         float b0 = edgesinv[id];
         float b1 = edgesinv[id + ntets];
@@ -821,7 +818,7 @@ __global__ void k_update_boundary_soft(const float* anchors, float* projections,
     }
 }
 
-__global__ void k_update_boundary_hard(const float* ellvalues, const int* ellcols,const float* crsvalues, const int* crscols, const int* row_ptr, float* result,  const int n_rows)
+__global__ void k_update_boundary_hard(cudaTextureObject_t tex_points, const float* ellvalues, const int* ellcols,const float* crsvalues, const int* crscols, const int* row_ptr, float* result,  const int n_rows)
 {
     extern __shared__ float s_data[];
     const int id = blockIdx.x * blockDim.x + threadIdx.x;
@@ -835,9 +832,9 @@ __global__ void k_update_boundary_hard(const float* ellvalues, const int* ellcol
     {
         float crsval = crsvalues[i];
         int crscol = 3*(crscols[i]);
-        s_data[3*(i - blockstart)] = crsval*tex1Dfetch(rhs_tex, crscol);
-        s_data[3*(i - blockstart) + 1] = crsval*tex1Dfetch(rhs_tex, crscol + 1);
-        s_data[3*(i - blockstart) + 2] = crsval*tex1Dfetch(rhs_tex, crscol + 2);
+        s_data[3*(i - blockstart)] = crsval*tex1Dfetch<float>(tex_points, crscol);
+        s_data[3*(i - blockstart) + 1] = crsval*tex1Dfetch<float>(tex_points, crscol + 1);
+        s_data[3*(i - blockstart) + 2] = crsval*tex1Dfetch<float>(tex_points, crscol + 2);
 
     }
     __syncthreads();
@@ -857,9 +854,9 @@ __global__ void k_update_boundary_hard(const float* ellvalues, const int* ellcol
             if(fabs(ellval) > 0.0)
             {
                 int ellcol = 3*(ellcols[i*n_rows + id]);
-                val0 += ellval*tex1Dfetch(rhs_tex, ellcol);
-                val1 += ellval*tex1Dfetch(rhs_tex, ellcol + 1);
-                val2 += ellval*tex1Dfetch(rhs_tex, ellcol + 2);
+                val0 += ellval*tex1Dfetch<float>(tex_points, ellcol);
+                val1 += ellval*tex1Dfetch<float>(tex_points, ellcol + 1);
+                val2 += ellval*tex1Dfetch<float>(tex_points, ellcol + 2);
             }
         }
 
@@ -880,7 +877,7 @@ __global__ void k_update_boundary_hard(const float* ellvalues, const int* ellcol
     }
 }
 
-__global__ void k_prepare_rhs(const float* ellvalues, const int* ellcols,const float* crsvalues, const int* crscols, const int* row_ptr, const float* mom, float* result,  const int n_rows, const int n_cols)
+__global__ void k_prepare_rhs(cudaTextureObject_t tex_proj, const float* ellvalues, const int* ellcols,const float* crsvalues, const int* crscols, const int* row_ptr, const float* mom, float* result,  const int n_rows, const int n_cols)
 {
     extern __shared__ float s_data[];
     const int id = blockIdx.x * blockDim.x + threadIdx.x;
@@ -894,9 +891,9 @@ __global__ void k_prepare_rhs(const float* ellvalues, const int* ellcols,const f
     {
         float crsval = crsvalues[i];
         int crscol = crscols[i];
-        s_data[3*(i - blockstart)] = crsval*tex1Dfetch(rhs_tex, crscol);
-        s_data[3*(i - blockstart) + 1] = crsval*tex1Dfetch(rhs_tex, crscol + n_cols);
-        s_data[3*(i - blockstart) + 2] = crsval*tex1Dfetch(rhs_tex, crscol + 2*n_cols);
+        s_data[3*(i - blockstart)] = crsval*tex1Dfetch<float>(tex_proj, crscol);
+        s_data[3*(i - blockstart) + 1] = crsval*tex1Dfetch<float>(tex_proj, crscol + n_cols);
+        s_data[3*(i - blockstart) + 2] = crsval*tex1Dfetch<float>(tex_proj, crscol + 2*n_cols);
     }
     __syncthreads();
 
@@ -915,9 +912,9 @@ __global__ void k_prepare_rhs(const float* ellvalues, const int* ellcols,const f
             if(fabs(ellval) > 0.0)
             {
                 int ellcol = ellcols[i*n_rows + id];
-                val0 += ellval*tex1Dfetch(rhs_tex, ellcol);
-                val1 += ellval*tex1Dfetch(rhs_tex, ellcol + n_cols);
-                val2 += ellval*tex1Dfetch(rhs_tex, ellcol + 2*n_cols);
+                val0 += ellval*tex1Dfetch<float>(tex_proj, ellcol);
+                val1 += ellval*tex1Dfetch<float>(tex_proj, ellcol + n_cols);
+                val2 += ellval*tex1Dfetch<float>(tex_proj, ellcol + 2*n_cols);
             }
         }
 
@@ -938,7 +935,7 @@ __global__ void k_prepare_rhs(const float* ellvalues, const int* ellcols,const f
     }
 }
 
-__global__ void k_update_face_normals(const unsigned int* indices, float* face_normals, const int size)
+__global__ void k_update_face_normals(cudaTextureObject_t tex_points, const unsigned int* indices, float* face_normals, const int size)
 {
     const int id = blockIdx.x * blockDim.x + threadIdx.x;
     if(id < size)
@@ -947,17 +944,17 @@ __global__ void k_update_face_normals(const unsigned int* indices, float* face_n
         int i1 = indices[3*id + 1];
         int i2 = indices[3*id + 2];
 
-        float p0x = tex1Dfetch(rhs_tex, 3*i0);
-        float p0y = tex1Dfetch(rhs_tex, 3*i0 + 1);
-        float p0z = tex1Dfetch(rhs_tex, 3*i0 + 2);
+        float p0x = tex1Dfetch<float>(tex_points, 3*i0);
+        float p0y = tex1Dfetch<float>(tex_points, 3*i0 + 1);
+        float p0z = tex1Dfetch<float>(tex_points, 3*i0 + 2);
 
-        float p1x = tex1Dfetch(rhs_tex, 3*i1);
-        float p1y = tex1Dfetch(rhs_tex, 3*i1 + 1);
-        float p1z = tex1Dfetch(rhs_tex, 3*i1 + 2);
+        float p1x = tex1Dfetch<float>(tex_points, 3*i1);
+        float p1y = tex1Dfetch<float>(tex_points, 3*i1 + 1);
+        float p1z = tex1Dfetch<float>(tex_points, 3*i1 + 2);
 
-        float p2x = tex1Dfetch(rhs_tex, 3*i2);
-        float p2y = tex1Dfetch(rhs_tex, 3*i2 + 1);
-        float p2z = tex1Dfetch(rhs_tex, 3*i2 + 2);
+        float p2x = tex1Dfetch<float>(tex_points, 3*i2);
+        float p2y = tex1Dfetch<float>(tex_points, 3*i2 + 1);
+        float p2z = tex1Dfetch<float>(tex_points, 3*i2 + 2);
 
         float e01x = p1x - p0x;
         float e01y = p1y - p0y;
@@ -986,7 +983,7 @@ __global__ void k_update_face_normals(const unsigned int* indices, float* face_n
     }
 }
 
-__global__ void k_update_vertex_normals(const unsigned int *offsets, const unsigned int *neighbors, float* vertex_normals, const int size)
+__global__ void k_update_vertex_normals(cudaTextureObject_t tex_normals_f, const unsigned int *offsets, const unsigned int *neighbors, float* vertex_normals, const int size)
 {
 
     const int id = blockIdx.x * blockDim.x + threadIdx.x;
@@ -1002,9 +999,9 @@ __global__ void k_update_vertex_normals(const unsigned int *offsets, const unsig
         for(int i = start; i < end; i++)
         {
             unsigned int n = neighbors[i];
-            nx += tex1Dfetch(rhs_tex, 3*n);
-            ny += tex1Dfetch(rhs_tex, 3*n + 1);
-            nz += tex1Dfetch(rhs_tex, 3*n + 2);
+            nx += tex1Dfetch<float>(tex_normals_f, 3*n);
+            ny += tex1Dfetch<float>(tex_normals_f, 3*n + 1);
+            nz += tex1Dfetch<float>(tex_normals_f, 3*n + 2);
         }
 
         float norminv = 1.0/sqrt(nx*nx + ny*ny + nz*nz);
@@ -1119,7 +1116,7 @@ __global__ void k_skin_sliding(float* points, unsigned int* interpolIndices, flo
     }
 }
 
-__global__ void k_upsampling(float *us_points,float *us_normals,
+__global__ void k_upsampling(cudaTextureObject_t tex_points, cudaTextureObject_t tex_normals_v, float *us_points,float *us_normals,
                                  const float *nis, const float *normal_nis, const unsigned int *lr_index,
                                  const int n_ni, const int size)
 {
@@ -1146,13 +1143,13 @@ __global__ void k_upsampling(float *us_points,float *us_normals,
             float nni = normal_nis[id + i*size];
 
             unsigned int i0 = 3*(lr_id & 0x0000FFFF);
-            usx += ni*tex1Dfetch(rhs_tex, i0);
-            usy += ni*tex1Dfetch(rhs_tex, i0 + 1);
-            usz += ni*tex1Dfetch(rhs_tex, i0 + 2);
+            usx += ni*tex1Dfetch<float>(tex_points, i0);
+            usy += ni*tex1Dfetch<float>(tex_points, i0 + 1);
+            usz += ni*tex1Dfetch<float>(tex_points, i0 + 2);
 
-            nx += nni*tex1Dfetch(normal_tex, i0);
-            ny += nni*tex1Dfetch(normal_tex, i0 + 1);
-            nz += nni*tex1Dfetch(normal_tex, i0 + 2);
+            nx += nni*tex1Dfetch<float>(tex_normals_v, i0);
+            ny += nni*tex1Dfetch<float>(tex_normals_v, i0 + 1);
+            nz += nni*tex1Dfetch<float>(tex_normals_v, i0 + 2);
 
             i++;
             if(i == n_ni)
@@ -1163,13 +1160,13 @@ __global__ void k_upsampling(float *us_points,float *us_normals,
             ni = nis[id + i*size];
             nni = normal_nis[id + i*size];
 
-            usx += ni*tex1Dfetch(rhs_tex, lr_id);
-            usy += ni*tex1Dfetch(rhs_tex, lr_id + 1);
-            usz += ni*tex1Dfetch(rhs_tex, lr_id + 2);
+            usx += ni*tex1Dfetch<float>(tex_points, lr_id);
+            usy += ni*tex1Dfetch<float>(tex_points, lr_id + 1);
+            usz += ni*tex1Dfetch<float>(tex_points, lr_id + 2);
 
-            nx += nni*tex1Dfetch(normal_tex, lr_id);
-            ny += nni*tex1Dfetch(normal_tex, lr_id + 1);
-            nz += nni*tex1Dfetch(normal_tex, lr_id + 2);
+            nx += nni*tex1Dfetch<float>(tex_normals_v, lr_id);
+            ny += nni*tex1Dfetch<float>(tex_normals_v, lr_id + 1);
+            nz += nni*tex1Dfetch<float>(tex_normals_v, lr_id + 2);
         }
 
         s_pts[3*tid] = usx;
@@ -1197,7 +1194,7 @@ __global__ void k_upsampling(float *us_points,float *us_normals,
 }
 
 
-__global__ void k_collision_projection(float* colproj, const int * coltrigs, const float weight, const int size, const int size_nonHand)
+__global__ void k_collision_projection(cudaTextureObject_t tex_points, float* colproj, const int * coltrigs, const float weight, const int size, const int size_nonHand)
 {
     const int id = blockIdx.x * blockDim.x + threadIdx.x;
     if(id < size)
@@ -1208,22 +1205,22 @@ __global__ void k_collision_projection(float* colproj, const int * coltrigs, con
         int i3 = coltrigs[id + 3*size];
 
         //collisionpoint
-        float p0x = tex1Dfetch(rhs_tex, 3*i);
-        float p0y = tex1Dfetch(rhs_tex, 3*i + 1);
-        float p0z = tex1Dfetch(rhs_tex, 3*i + 2);
+        float p0x = tex1Dfetch<float>(tex_points, 3*i);
+        float p0y = tex1Dfetch<float>(tex_points, 3*i + 1);
+        float p0z = tex1Dfetch<float>(tex_points, 3*i + 2);
 
         // points on triangle
-        float p1x = tex1Dfetch(rhs_tex, 3*i1);
-        float p1y = tex1Dfetch(rhs_tex, 3*i1 + 1);
-        float p1z = tex1Dfetch(rhs_tex, 3*i1 + 2);
+        float p1x = tex1Dfetch<float>(tex_points, 3*i1);
+        float p1y = tex1Dfetch<float>(tex_points, 3*i1 + 1);
+        float p1z = tex1Dfetch<float>(tex_points, 3*i1 + 2);
 
-        float p2x = tex1Dfetch(rhs_tex, 3*i2);
-        float p2y = tex1Dfetch(rhs_tex, 3*i2 + 1);
-        float p2z = tex1Dfetch(rhs_tex, 3*i2 + 2);
+        float p2x = tex1Dfetch<float>(tex_points, 3*i2);
+        float p2y = tex1Dfetch<float>(tex_points, 3*i2 + 1);
+        float p2z = tex1Dfetch<float>(tex_points, 3*i2 + 2);
 
-        float p3x = tex1Dfetch(rhs_tex, 3*i3);
-        float p3y = tex1Dfetch(rhs_tex, 3*i3 + 1);
-        float p3z = tex1Dfetch(rhs_tex, 3*i3 + 2);
+        float p3x = tex1Dfetch<float>(tex_points, 3*i3);
+        float p3y = tex1Dfetch<float>(tex_points, 3*i3 + 1);
+        float p3z = tex1Dfetch<float>(tex_points, 3*i3 + 2);
 
         // triangle edge12
         float e12x = p2x - p1x;
@@ -1385,6 +1382,8 @@ void PDsolverCuda::init(Mesh *mesh,
     init_cuda_normals();
     if(!mesh_->high_res_indices_.empty())
         init_cuda_upsampling(mesh_->high_res_indices_, mesh_->us_neighors_, mesh_->us_Nij_, mesh_->us_normal_Nij_,false);
+
+    init_cuda_textures();
 
     cudaDeviceSynchronize();
     cudaMemGetInfo(&freeMemAfter, &totalMem);
@@ -1600,11 +1599,11 @@ void PDsolverCudaCollisions::update_anchors()
 
 void PDsolverCuda::update_HR(float *d_vbo, float *d_nbo)
 {
-    cudaBindTexture(NULL,rhs_tex,d_points,3*num_unified_points_*sizeof(float));
-    cudaBindTexture(NULL,normal_tex,d_vertex_normals,3*num_unified_points_*sizeof(float));
+    //cudaBindTexture(NULL,rhs_tex,d_points,3*num_unified_points_*sizeof(float));
+    //cudaBindTexture(NULL,normal_tex,d_vertex_normals,3*num_unified_points_*sizeof(float));
 
     k_upsampling<<<(numUS_ + THREADS_PER_BLOCK - 1)/THREADS_PER_BLOCK, THREADS_PER_BLOCK>>>
-    (d_vbo, d_nbo,d_upsampling_Nij_,d_upsampling_normal_Nij_, d_upsampling_neighbors_,numUSNeighbors_, numUS_);
+    (tex_points_, tex_normals_v_, d_vbo, d_nbo,d_upsampling_Nij_,d_upsampling_normal_Nij_, d_upsampling_neighbors_,numUSNeighbors_, numUS_);
 
     // use this version if you do not want to copy to vbo directly
 //     k_upsampling<<<(numUS_ + THREADS_PER_BLOCK - 1)/THREADS_PER_BLOCK, THREADS_PER_BLOCK>>>
@@ -1615,19 +1614,19 @@ void PDsolverCuda::update_HR(float *d_vbo, float *d_nbo)
 //     cudaMemcpy(mesh_->high_res_vertex_normals_.data(), d_hr_normals_, 3*numUS_*sizeof(float), cudaMemcpyDeviceToHost);
 
 
-    //cudaUnbindTexture(rhs_tex);
-    cudaUnbindTexture(normal_tex);
+    ////cudaUnbindTexture(rhs_tex);
+    //cudaUnbindTexture(normal_tex);
 }
 
 void PDsolverCuda::update_normals(bool just_VN)
 {
-    cudaBindTexture(NULL, rhs_tex, d_points, 3*num_points_*sizeof(float));
+    //cudaBindTexture(NULL, rhs_tex, d_points, 3*num_points_*sizeof(float));
 
-    k_update_face_normals<<<(indices_.size()/3 + THREADS_PER_BLOCK - 1)/THREADS_PER_BLOCK, THREADS_PER_BLOCK>>>(d_indices, d_face_normals, indices_.size()/3);
+    k_update_face_normals<<<(indices_.size()/3 + THREADS_PER_BLOCK - 1)/THREADS_PER_BLOCK, THREADS_PER_BLOCK>>>(tex_points_, d_indices, d_face_normals, indices_.size()/3);
 
-    cudaBindTexture(NULL, rhs_tex, d_face_normals, indices_.size()*sizeof(float));
+    //cudaBindTexture(NULL, rhs_tex, d_face_normals, indices_.size()*sizeof(float));
 
-    k_update_vertex_normals<<<(num_surface_points_ + THREADS_PER_BLOCK - 1)/THREADS_PER_BLOCK, THREADS_PER_BLOCK>>>(d_offsets, d_neighbors, d_vertex_normals, num_surface_points_);
+    k_update_vertex_normals<<<(num_surface_points_ + THREADS_PER_BLOCK - 1)/THREADS_PER_BLOCK, THREADS_PER_BLOCK>>>(tex_normals_f_, d_offsets, d_neighbors, d_vertex_normals, num_surface_points_);
 
     cudaMemcpy(mesh_->vertex_normals_.data(), d_vertex_normals ,3*num_surface_points_*sizeof(float), cudaMemcpyDeviceToHost);
 
@@ -1646,10 +1645,10 @@ void PDsolverCuda::update_skin(int iterations)
     // preparations
     if(hardconstraints_)
     {
-        cudaBindTexture(NULL, rhs_tex, d_points, 3*num_points_*sizeof(float));
+        //cudaBindTexture(NULL, rhs_tex, d_points, 3*num_points_*sizeof(float));
 
         k_update_boundary_hard<<<(d_Abc_.n_rows + THREADS_PER_BLOCK - 1)/THREADS_PER_BLOCK, THREADS_PER_BLOCK, 3*d_Abc_.n_maxNNZperBlock*sizeof(float)>>>
-        (d_Abc_.ellvalues, d_Abc_.ellcols, d_Abc_.crsvalues, d_Abc_.cols, d_Abc_.row_ptr, d_bc, d_Abc_.n_rows);
+        (tex_points_, d_Abc_.ellvalues, d_Abc_.ellcols, d_Abc_.crsvalues, d_Abc_.cols, d_Abc_.row_ptr, d_bc, d_Abc_.n_rows);
     }
     else
     {
@@ -1682,22 +1681,22 @@ void PDsolverCuda::update_skin(int iterations)
 
 void PDsolverCuda::update_local()
 {
-    cudaBindTexture(NULL, rhs_tex, d_points, 3*num_points_*sizeof(float));
+    //cudaBindTexture(NULL, rhs_tex, d_points, 3*num_points_*sizeof(float));
     if(hardconstraints_)
     {
         k_local_hard<<<(num_tets_ + THREADS_PER_BLOCK - 1)/THREADS_PER_BLOCK, THREADS_PER_BLOCK>>>
-        (d_edgeinv, d_projections, d_bc, d_tets, d_tetweights, num_tets_);
+        (tex_points_, d_edgeinv, d_projections, d_bc, d_tets, d_tetweights, num_tets_);
     }
     else
     {
         k_local_soft<<<(num_tets_ + THREADS_PER_BLOCK - 1)/THREADS_PER_BLOCK, THREADS_PER_BLOCK>>>
-        (d_edgeinv, d_projections, d_tets, d_tetweights, num_tets_, mesh_->num_rigid_);
+        (tex_points_, d_edgeinv, d_projections, d_tets, d_tetweights, num_tets_, mesh_->num_rigid_);
     }
 
     // At*proj + mom
-    cudaBindTexture(NULL, rhs_tex, d_projections, 3*num_projections_*sizeof(float));
+    //cudaBindTexture(NULL, rhs_tex, d_projections, 3*num_projections_*sizeof(float));
     k_prepare_rhs<<<(d_At2_.n_rows + THREADS_PER_BLOCK - 1)/THREADS_PER_BLOCK, THREADS_PER_BLOCK, 3*d_At2_.n_maxNNZperBlock*sizeof(float)>>>
-    (d_At2_.ellvalues, d_At2_.ellcols, d_At2_.crsvalues, d_At2_.cols, d_At2_.row_ptr, d_momentum, d_Atppmom_, d_At2_.n_rows, num_projections_);
+    (tex_proj_, d_At2_.ellvalues, d_At2_.ellcols, d_At2_.crsvalues, d_At2_.cols, d_At2_.row_ptr, d_momentum, d_Atppmom_, d_At2_.n_rows, num_projections_);
 
 }
 
@@ -1705,17 +1704,17 @@ void PDsolverCuda::update_global()
 {
 
     // PCG
-    cudaBindTexture(NULL, rhs_tex, d_points, 3*num_points_*sizeof(float));
+    //cudaBindTexture(NULL, rhs_tex, d_points, 3*num_points_*sizeof(float));
     k_init_PCG<<<(d_S_.n_rows + THREADS_PER_BLOCK - 1)/THREADS_PER_BLOCK, THREADS_PER_BLOCK>>>
-    (d_S_.diagvalues, d_S_.ellvalues, d_S_.ellcols, d_S_.crsvalues, d_S_.cols, d_S_.row_ptr, d_d_, d_r_, d_greek_ ,d_Atppmom_, d_S_.n_rows);
+    (tex_points_, d_S_.diagvalues, d_S_.ellvalues, d_S_.ellcols, d_S_.crsvalues, d_S_.cols, d_S_.row_ptr, d_d_, d_r_, d_greek_ ,d_Atppmom_, d_S_.n_rows);
 
     int i = 0;
-    cudaBindTexture(NULL, rhs_tex, d_d_, 3*d_S_.n_rows*sizeof(float));
+    //cudaBindTexture(NULL, rhs_tex, d_d_, 3*d_S_.n_rows*sizeof(float));
     while(i < 10)
     {
 
         k_PCG1<<<(d_S_.n_rows + THREADS_PER_BLOCK - 1)/THREADS_PER_BLOCK, THREADS_PER_BLOCK, 3*d_S_.n_maxNNZperBlock*sizeof(float)>>>
-        (d_S_.diagvalues, d_S_.ellvalues, d_S_.ellcols, d_S_.crsvalues, d_S_.cols, d_S_.row_ptr, d_q_, d_greek_, d_S_.n_rows);
+        (tex_dd_, d_S_.diagvalues, d_S_.ellvalues, d_S_.ellcols, d_S_.crsvalues, d_S_.cols, d_S_.row_ptr, d_q_, d_greek_, d_S_.n_rows);
 
         k_PCG2<<<(d_S_.n_rows + THREADS_PER_BLOCK - 1)/THREADS_PER_BLOCK, THREADS_PER_BLOCK>>>
         (d_S_.diagvalues, d_r_, d_d_, d_q_, d_points, d_greek_, d_S_.n_rows);
@@ -1734,10 +1733,10 @@ void PDsolverCudaCollisions::update_local()
 {
     PDsolverCuda::update_local();
 
-    cudaBindTexture(NULL, rhs_tex, d_points, 3*num_points_*sizeof(float));
+    //cudaBindTexture(NULL, rhs_tex, d_points, 3*num_points_*sizeof(float));
 
     k_collision_projection<<<(collisions_.size()/4 + THREADS_PER_BLOCK - 1)/THREADS_PER_BLOCK, THREADS_PER_BLOCK>>>
-    (d_collisionprojections_, d_collisionIndices_, weight_col_, collisions_.size()/4, collisions_.size()/4 - num_handCols_);
+    (tex_points_, d_collisionprojections_, d_collisionIndices_, weight_col_, collisions_.size()/4, collisions_.size()/4 - num_handCols_);
 
     // todo: fuse this with prepare_rhs kernel
     k_add_collisions_to_rhs<<<(num_non_boundary_ + THREADS_PER_BLOCK - 1)/THREADS_PER_BLOCK, THREADS_PER_BLOCK, collisions_.size()*sizeof(float)>>>
@@ -1747,14 +1746,14 @@ void PDsolverCudaCollisions::update_local()
 void PDsolverCudaCollisions::update_global()
 {
     k_init_PCG_collisions<<<(d_S_.n_rows + THREADS_PER_BLOCK - 1)/THREADS_PER_BLOCK, THREADS_PER_BLOCK>>>
-    (d_S_.diagvalues, d_S_.ellvalues, d_S_.ellcols, d_S_.crsvalues, d_S_.cols, d_S_.row_ptr, d_colcsrvals, d_colcsrcols, d_colcsrrptr, d_d_, d_r_, d_greek_ ,d_Atppmom_, d_S_.n_rows);
+    (tex_points_, d_S_.diagvalues, d_S_.ellvalues, d_S_.ellcols, d_S_.crsvalues, d_S_.cols, d_S_.row_ptr, d_colcsrvals, d_colcsrcols, d_colcsrrptr, d_d_, d_r_, d_greek_ ,d_Atppmom_, d_S_.n_rows);
 
     int i = 0;
-    cudaBindTexture(NULL, rhs_tex, d_d_, 3*d_S_.n_rows*sizeof(float));
+    //cudaBindTexture(NULL, rhs_tex, d_d_, 3*d_S_.n_rows*sizeof(float));
     while(i < 10)
     {
         k_PCG1_collisions<<<(d_S_.n_rows + THREADS_PER_BLOCK - 1)/THREADS_PER_BLOCK, THREADS_PER_BLOCK, 3*(d_S_.n_maxNNZperBlock + 6*(collisions_.size()/4))*sizeof(float)>>>
-        (d_S_.diagvalues, d_S_.ellvalues, d_S_.ellcols, d_S_.crsvalues, d_S_.cols, d_S_.row_ptr, d_colcsrvals, d_colcsrcols, d_colcsrrptr, d_q_, d_greek_, d_S_.n_rows);
+        (tex_dd_, d_S_.diagvalues, d_S_.ellvalues, d_S_.ellcols, d_S_.crsvalues, d_S_.cols, d_S_.row_ptr, d_colcsrvals, d_colcsrcols, d_colcsrrptr, d_q_, d_greek_, d_S_.n_rows);
 
         k_PCG2<<<(d_S_.n_rows + THREADS_PER_BLOCK - 1)/THREADS_PER_BLOCK, THREADS_PER_BLOCK>>>
         (d_S_.diagvalues, d_r_, d_d_, d_q_, d_points, d_greek_, d_S_.n_rows);
@@ -1954,6 +1953,45 @@ void PDsolverCuda::init_cuda_normals()
 
     delete [] h_offsets;
     delete [] h_neighbors;
+}
+
+void PDsolverCuda::init_cuda_textures()
+{
+    tex_points_ = 0;
+    tex_normals_v_ = 0;
+    tex_normals_f_ = 0;
+    tex_proj_ = 0;
+    tex_dd_ = 0;
+    
+    cudaResourceDesc resDesc;
+    memset(&resDesc, 0, sizeof(resDesc));
+    resDesc.resType = cudaResourceTypeLinear;
+    resDesc.res.linear.desc.f = cudaChannelFormatKindFloat;
+    resDesc.res.linear.desc.x = 32; // bits per channel
+
+    cudaTextureDesc texDesc;
+    memset(&texDesc, 0, sizeof(texDesc));
+    texDesc.readMode = cudaReadModeElementType;
+
+    resDesc.res.linear.devPtr = d_points;
+    resDesc.res.linear.sizeInBytes = 3*num_unified_points_*sizeof(float);
+    checkCudaErrors(cudaCreateTextureObject(&tex_points_, &resDesc, &texDesc, NULL));
+
+    resDesc.res.linear.devPtr = d_vertex_normals;
+    resDesc.res.linear.sizeInBytes = 3*num_surface_points_*sizeof(float);
+    checkCudaErrors(cudaCreateTextureObject(&tex_normals_v_, &resDesc, &texDesc, NULL));
+
+    resDesc.res.linear.devPtr = d_face_normals;
+    resDesc.res.linear.sizeInBytes = indices_.size()*sizeof(float);
+    checkCudaErrors(cudaCreateTextureObject(&tex_normals_f_, &resDesc, &texDesc, NULL));
+    
+    resDesc.res.linear.devPtr = d_projections;
+    resDesc.res.linear.sizeInBytes = 3*num_projections_*sizeof(float);
+    checkCudaErrors(cudaCreateTextureObject(&tex_proj_, &resDesc, &texDesc, NULL));
+    
+    resDesc.res.linear.devPtr = d_d_;
+    resDesc.res.linear.sizeInBytes = 3*d_S_.n_rows*sizeof(float);
+    checkCudaErrors(cudaCreateTextureObject(&tex_dd_, &resDesc, &texDesc, NULL));
 }
 
 void PDsolverCuda::init_cuda_upsampling(const Projective_Skinning::IndexVector &us_indices, std::vector<std::vector<unsigned int> > &us_neighbors, std::vector<std::vector<float> > &us_Nij, std::vector<std::vector<float> > &us_normal_Nij, bool duplicate)

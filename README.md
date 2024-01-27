@@ -7,7 +7,7 @@ repository recursively:
 
 ## Dependencies
 
-If you are just interested in the CPU-Version, simply build this project and run it. If you are interestend in the GPU-Version, you will have to install the CUDA libraries. The code was tested for CUDA versions 9.2 and 10.1 but others should also work. Try one of CUDA's examples to make sure it works properly.
+If you are just interested in the CPU-Version, simply build this project and run it. If you are interestend in the GPU-Version, you will have to install the CUDA libraries. The code was tested with CUDA version 12.3 but others should also work (if you want to use a cuda version < 11.3, use an older commit from 2023 or before). Try one of CUDA's examples to make sure it works properly.
 
 ## Configure and Build
 
@@ -19,12 +19,14 @@ This will automatically build the project and its dependecies.
 
 ### Windows
 
-On windows systems, the easiest way to run the code is using the *x64 Native Tools Command Promt* of your Visual Studio version. In th command promt, navigate into the FastProjectiveSkinning folder and build via
+On windows systems, the easiest way to run the code from the command line is using the *x64 Native Tools Command Promt* of your Visual Studio version. In th command promt, navigate into the FastProjectiveSkinning folder and build via
 
     $ mkdir build
     $ cd build
     $ cmake -G "NMake Makefiles" -DCMAKE_BUILD_TYPE=RELEASE ..
     $ nmake
+
+If you are a fan of VSCODE, the project is now also compilable and runnable with the extensions for C++ and CMAKE.
 
 ## Running
 

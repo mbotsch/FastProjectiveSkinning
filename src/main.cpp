@@ -111,6 +111,7 @@ int main(int argc, char **argv)
         {
             // init from .ini file
             std::string ini_file = ini_filename.empty() ? input : ini_filename;
+            std::string ini_location = ini_file.substr(0, ini_file.rfind("/") + 1);
             std::ifstream ifs(ini_file.c_str());
             if(!ifs)
             {
@@ -134,23 +135,23 @@ int main(int argc, char **argv)
 
                 if(header == "SIMMESH")
                 {
-                    skin_file_lr = info;
+                    skin_file_lr = ini_location + info;
                 }
                 else if(header == "SKELETON")
                 {
-                    skel_file = info;
+                    skel_file = ini_location + info;
                 }
                 else if(header == "VISMESH")
                 {
-                    skin_file_hr = info;
+                    skin_file_hr = ini_location + info;
                 }
                 else if(header == "UPSAMPLING")
                 {
-                    us_file = info;
+                    us_file = ini_location + info;
                 }
                 else if(header == "ANIMATION")
                 {
-                    anim_file = info;
+                    anim_file = ini_location + info;
                     anim_base = base;
                 }
             }
