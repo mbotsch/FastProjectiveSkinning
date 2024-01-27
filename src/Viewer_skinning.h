@@ -64,7 +64,7 @@ public:
     Skinning_Viewer(const char* _title, int _width, int _height, bool _showgui=true);
     ~Skinning_Viewer();
 
-    void init(const char* skin_filename, const char* skel_filename, const char *skin_hr_filename, const char *us_filename, const std::string anim_filename, const std::string anim_base);
+    void init(const std::string ini_filename, const char* skin_filename, const char* skel_filename, const char *skin_hr_filename, const char *us_filename);
 
 private: // GUI functions
 

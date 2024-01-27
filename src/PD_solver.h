@@ -32,7 +32,7 @@ public:
     virtual void update_HR(float*, float*); // todo: move upsampling variables to this class
     virtual void update_normals(bool);
 
-    virtual void update_ogl_sim_mesh_buffers(float*, float*){}
+    virtual void update_ogl_sim_mesh_buffers(float*, float*, size_t){}
     virtual void reinit(const std::vector<int>&, const int){}
 
 protected:

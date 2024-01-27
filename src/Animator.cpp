@@ -83,6 +83,60 @@ void Animator::init(const char *skin_lr_filename, const char* skel_filename, con
 }
 
 
+void Animator::init_from_ini(const std::string ini_file)
+{
+    std::cout << "init from ini" << std::endl;
+    std::string skin_file_lr, skin_file_hr, us_file, anim_file, anim_base, skel_file;
+    std::string ini_location = ini_file.substr(0, ini_file.rfind("/") + 1);
+    // init from .ini file
+    std::ifstream ifs(ini_file.c_str());
+    if(!ifs)
+    {
+        std::cerr << "Could not read file: " << ini_file << std::endl;
+        return;
+    }
+    std::string line;
+    while(std::getline(ifs,line))
+    {
+        std::stringstream ss_line(line);
+        std::string header,info, base;
+
+        ss_line >> header >> info >> base;
+        std::cout << line << std::endl;
+
+        // get rid of " to support spaces in filenames
+        if(info[0] == '"')
+        {
+            info = info.substr(1,info.find_last_of('"')-1);
+        }
+
+        if(header == "SIMMESH")
+        {
+            skin_file_lr = ini_location + info;
+        }
+        else if(header == "SKELETON")
+        {
+            skel_file = ini_location + info;
+        }
+        else if(header == "VISMESH")
+        {
+            skin_file_hr = ini_location + info;
+        }
+        else if(header == "UPSAMPLING")
+        {
+            us_file = ini_location + info;
+        }
+        else if(header == "ANIMATION")
+        {
+            anim_file = ini_location + info;
+            anim_base = base;
+        }
+    }
+
+    init(skin_file_lr.c_str(), skel_file.c_str(),skin_file_hr.c_str(), us_file.c_str());
+    load_animation(anim_file, anim_base);
+}
+
 
 
 void Animator::update_skeleton(bool _animate, float dt)
@@ -114,7 +168,7 @@ void Animator::update_skeleton(bool _animate, float dt)
     }
 }
 
-void Animator::update_mesh(bool animate, float dt, bool update_high_res, bool _update_collisions, bool timing_updates, float *d_vbo, float *d_nbo)
+void Animator::update_mesh(bool animate, float dt, bool update_high_res, bool _update_collisions, bool timing_updates, float *d_vbo, float *d_nbo, size_t num_bytes)
 {
     static int its = 0;
     static float skeltime = 0;
@@ -157,7 +211,7 @@ void Animator::update_mesh(bool animate, float dt, bool update_high_res, bool _u
             ustime += timer_.stop().elapsed();
         }
         else
-            solver_->update_ogl_sim_mesh_buffers(d_vbo, d_nbo);
+            solver_->update_ogl_sim_mesh_buffers(d_vbo, d_nbo, num_bytes);
 
         // update time variables
         if(its % 50 == 0)
@@ -201,7 +255,7 @@ void Animator::update_mesh(bool animate, float dt, bool update_high_res, bool _u
         if(mesh_.use_high_res_ && update_high_res)
             solver_->update_HR(d_vbo, d_nbo);
         else
-            solver_->update_ogl_sim_mesh_buffers(d_vbo, d_nbo);
+            solver_->update_ogl_sim_mesh_buffers(d_vbo, d_nbo, num_bytes);
     }
 
 }

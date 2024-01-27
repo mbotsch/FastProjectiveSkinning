@@ -25,13 +25,13 @@ public:
     ~Animator();
 
     void init(const char* skin_lr_filename, const char *skel_filename, const char *skin_hr_filename, const char *us_filename);
-
+    void init_from_ini(const std::string ini_filename);
     void rotate_current_joint(int axis, float angle);
     void update_skeleton(bool animate, float dt);
     void reset();
     void reset_collisions();
 
-    void update_mesh(bool animate, float dt, bool update_high_res, bool update_collisions, bool timing_updates, float* d_vbo, float* d_nbo);
+    void update_mesh(bool animate, float dt, bool update_high_res, bool update_collisions, bool timing_updates, float* d_vbo, float* d_nbo, size_t num_bytes);
     void set_animation_mode(int mode);
     void increase_bone();
     void decrease_bone();

@@ -80,10 +80,13 @@ Skinning_Viewer::~Skinning_Viewer()
     delete ik_;
 }
 
-void Skinning_Viewer::init(const char *skin_filename, const char *skel_filename, const char* skin_hr_filename, const char* us_filename, const std::string anim_filename, const std::string anim_base)
+void Skinning_Viewer::init(const std::string ini_filename, const char *skin_filename, const char *skel_filename, const char* skin_hr_filename, const char* us_filename)
 {
 
-    animator_.init(skin_filename, skel_filename, skin_hr_filename, us_filename);
+    if(ini_filename.empty())
+        animator_.init(skin_filename, skel_filename, skin_hr_filename, us_filename);
+    else
+        animator_.init_from_ini(ini_filename);
 
 #ifndef WITH_CUDA
 
@@ -148,9 +151,6 @@ void Skinning_Viewer::init(const char *skin_filename, const char *skel_filename,
         ogl_current_mesh_ = &ogl_hr_mesh_;
         upload_ogl_data();
     }
-
-    if(!anim_filename.empty())
-        animator_.load_animation(anim_filename, anim_base);
 }
 
 
@@ -300,7 +300,7 @@ void Skinning_Viewer::do_processing()
     dt = std::min(dt, 1000.0f/60.0f);
 
     // update mesh
-    animator_.update_mesh(animate_,animation_speed_*dt,draw_options_ == DRAW_HR,D_GLOBAL_COLLISIONS && collisions_,update_timings_, dptr, nptr);
+    animator_.update_mesh(animate_,animation_speed_*dt,draw_options_ == DRAW_HR,D_GLOBAL_COLLISIONS && collisions_,update_timings_, dptr, nptr, num_bytes);
 
 #ifdef WITH_CUDA
     // unmap cuda buffers
@@ -308,7 +308,8 @@ void Skinning_Viewer::do_processing()
     checkCudaErrors(cudaGraphicsUnmapResources(1, &ogl_current_mesh_->cuda_nbo_, 0));
 #endif
 
-    if(!D_GPU || draw_options_ == DRAW_VOL_SKEL)
+    // for small meshes, writing to the vertex buffer directly does not seam to work... I was not able to find out why so far, but for these cases, its fine to just copy it to ogl from host
+    if(!D_GPU || draw_options_ == DRAW_VOL_SKEL || ogl_current_mesh_->vertices->cols() < 10000)
         upload_ogl_data();
 
 }

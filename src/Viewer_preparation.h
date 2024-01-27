@@ -80,6 +80,11 @@ private:
 
     void print_upsampling_weights(const char* filename);
 
+    std::string get_filename_from_path(const std::string& path)
+    {
+        return path.substr(path.rfind("/") + 1);
+    }
+
     pmp::Shader skeleton_shader_, mesh_shader_;
 
     // skeleton buffer arrays

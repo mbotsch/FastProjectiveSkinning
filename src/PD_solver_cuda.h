@@ -74,7 +74,7 @@ public:
     virtual void update_anchors() override;
     virtual void update_HR(float* d_vbo, float* d_nbo) override;
     virtual void update_normals(bool just_VN = true) override;
-    virtual void update_ogl_sim_mesh_buffers(float* vbo, float* nbo) override;
+    virtual void update_ogl_sim_mesh_buffers(float* vbo, float* nbo, size_t) override;
 
     void reset();
 

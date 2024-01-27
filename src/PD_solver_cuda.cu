@@ -1348,6 +1348,24 @@ __global__ void k_add_collisions_to_rhs(float* atppmom, const float* colproj, co
 }
 
 
+
+__global__ void k_copy_to_ogl(float* ogl_points, float* ogl_normals, float * cuda_points, float* cuda_normals, const int N)
+{
+    const int id = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if(id < N)
+    {
+        ogl_points[3*id + 0] = cuda_points[3*id + 0];
+        ogl_points[3*id + 1] = cuda_points[3*id + 1];
+        ogl_points[3*id + 2] = cuda_points[3*id + 2];
+
+        ogl_normals[3*id + 0] = cuda_normals[3*id + 0];
+        ogl_normals[3*id + 1] = cuda_normals[3*id + 1];
+        ogl_normals[3*id + 2] = cuda_normals[3*id + 2];
+    }
+}
+
+
 //----------------------------------------------------------------------------------------------------------------------------------------------
 
 // main global functions
@@ -1574,7 +1592,7 @@ void PDsolverCuda::tidyUp()
 
 void PDsolverCuda::update_anchors()
 {
-    cudaMemcpy(d_transformationMatrices_, mesh_->skeleton_.transformations_[0].data() ,16*mesh_->skeleton_.transformations_.size()*sizeof(float), cudaMemcpyHostToDevice);
+    checkCudaErrors(cudaMemcpy(d_transformationMatrices_, mesh_->skeleton_.transformations_[0].data() ,16*mesh_->skeleton_.transformations_.size()*sizeof(float), cudaMemcpyHostToDevice));
     const static int numAnchors = mesh_->num_simple_rigid_ + mesh_->num_ignored_ + mesh_->num_sliding_references_;
     const static int baseTI = mesh_->base_simple_rigid_ - num_surface_points_;
     const static int numAnchorsNAdditionals = numAnchors + additionalAnchors_.size();
@@ -1587,7 +1605,7 @@ void PDsolverCuda::update_anchors()
 
     if(!hardconstraints_)
     {
-        cudaMemcpy(d_anchors, d_points + 3*mesh_->base_sliding_,3*mesh_->num_rigid_*sizeof(float), cudaMemcpyDeviceToDevice);
+        checkCudaErrors(cudaMemcpy(d_anchors, d_points + 3*mesh_->base_sliding_,3*mesh_->num_rigid_*sizeof(float), cudaMemcpyDeviceToDevice));
     }
 }
 
@@ -1599,8 +1617,6 @@ void PDsolverCudaCollisions::update_anchors()
 
 void PDsolverCuda::update_HR(float *d_vbo, float *d_nbo)
 {
-    //cudaBindTexture(NULL,rhs_tex,d_points,3*num_unified_points_*sizeof(float));
-    //cudaBindTexture(NULL,normal_tex,d_vertex_normals,3*num_unified_points_*sizeof(float));
 
     k_upsampling<<<(numUS_ + THREADS_PER_BLOCK - 1)/THREADS_PER_BLOCK, THREADS_PER_BLOCK>>>
     (tex_points_, tex_normals_v_, d_vbo, d_nbo,d_upsampling_Nij_,d_upsampling_normal_Nij_, d_upsampling_neighbors_,numUSNeighbors_, numUS_);
@@ -1612,26 +1628,18 @@ void PDsolverCuda::update_HR(float *d_vbo, float *d_nbo)
 //     // copy back
 //     cudaMemcpy(mesh_->high_res_Vertices_.data(), d_hr_points_, 3*numUS_*sizeof(float), cudaMemcpyDeviceToHost);
 //     cudaMemcpy(mesh_->high_res_vertex_normals_.data(), d_hr_normals_, 3*numUS_*sizeof(float), cudaMemcpyDeviceToHost);
-
-
-    ////cudaUnbindTexture(rhs_tex);
-    //cudaUnbindTexture(normal_tex);
 }
 
 void PDsolverCuda::update_normals(bool just_VN)
 {
-    //cudaBindTexture(NULL, rhs_tex, d_points, 3*num_points_*sizeof(float));
-
     k_update_face_normals<<<(indices_.size()/3 + THREADS_PER_BLOCK - 1)/THREADS_PER_BLOCK, THREADS_PER_BLOCK>>>(tex_points_, d_indices, d_face_normals, indices_.size()/3);
-
-    //cudaBindTexture(NULL, rhs_tex, d_face_normals, indices_.size()*sizeof(float));
 
     k_update_vertex_normals<<<(num_surface_points_ + THREADS_PER_BLOCK - 1)/THREADS_PER_BLOCK, THREADS_PER_BLOCK>>>(tex_normals_f_, d_offsets, d_neighbors, d_vertex_normals, num_surface_points_);
 
-    cudaMemcpy(mesh_->vertex_normals_.data(), d_vertex_normals ,3*num_surface_points_*sizeof(float), cudaMemcpyDeviceToHost);
+    checkCudaErrors(cudaMemcpy(mesh_->vertex_normals_.data(), d_vertex_normals ,3*num_surface_points_*sizeof(float), cudaMemcpyDeviceToHost));
 
     if(!just_VN)
-        cudaMemcpy(mesh_->face_normals_.data(), d_face_normals ,indices_.size()*sizeof(float), cudaMemcpyDeviceToHost);
+        checkCudaErrors(cudaMemcpy(mesh_->face_normals_.data(), d_face_normals ,indices_.size()*sizeof(float), cudaMemcpyDeviceToHost));
 }
 
 
@@ -1645,8 +1653,6 @@ void PDsolverCuda::update_skin(int iterations)
     // preparations
     if(hardconstraints_)
     {
-        //cudaBindTexture(NULL, rhs_tex, d_points, 3*num_points_*sizeof(float));
-
         k_update_boundary_hard<<<(d_Abc_.n_rows + THREADS_PER_BLOCK - 1)/THREADS_PER_BLOCK, THREADS_PER_BLOCK, 3*d_Abc_.n_maxNNZperBlock*sizeof(float)>>>
         (tex_points_, d_Abc_.ellvalues, d_Abc_.ellcols, d_Abc_.crsvalues, d_Abc_.cols, d_Abc_.row_ptr, d_bc, d_Abc_.n_rows);
     }
@@ -1655,7 +1661,7 @@ void PDsolverCuda::update_skin(int iterations)
         k_update_boundary_soft<<<(3*mesh_->num_rigid_ + THREADS_PER_BLOCK - 1)/THREADS_PER_BLOCK, THREADS_PER_BLOCK>>>
         (d_anchors, d_projections, weight_anc_, mesh_->num_rigid_, num_tets_);
     }
-    cudaEventSynchronize(event2_);
+    checkCudaErrors(cudaEventSynchronize(event2_));
 
     // momentum update
     k_update_momentum<<<(num_non_boundary_ + THREADS_PER_BLOCK - 1)/THREADS_PER_BLOCK, THREADS_PER_BLOCK>>>
@@ -1668,20 +1674,19 @@ void PDsolverCuda::update_skin(int iterations)
     }
 
     // copy points back to host async (not needed if non-collision simulation and directly streamed to OGL)
-    cudaMemcpyAsync(p_points_->data() ,d_points, 3*num_unified_points_*sizeof(float), cudaMemcpyDeviceToHost, stream1_);
-    cudaEventRecord(event1_, stream1_);
+    checkCudaErrors(cudaMemcpyAsync(p_points_->data() ,d_points, 3*num_unified_points_*sizeof(float), cudaMemcpyDeviceToHost, stream1_));
+    checkCudaErrors(cudaEventRecord(event1_, stream1_));
 
     //velocity update
     k_update_velocity<<<(3*num_non_boundary_ + THREADS_PER_BLOCK - 1)/THREADS_PER_BLOCK, THREADS_PER_BLOCK, 0, stream2_>>>
     (d_velocities, d_points, d_old_points, damping_, num_non_boundary_);
-    cudaEventRecord(event2_, stream2_);
+    checkCudaErrors(cudaEventRecord(event2_, stream2_));
 
-    cudaEventSynchronize(event1_);
+    checkCudaErrors(cudaEventSynchronize(event1_));
 }
 
 void PDsolverCuda::update_local()
 {
-    //cudaBindTexture(NULL, rhs_tex, d_points, 3*num_points_*sizeof(float));
     if(hardconstraints_)
     {
         k_local_hard<<<(num_tets_ + THREADS_PER_BLOCK - 1)/THREADS_PER_BLOCK, THREADS_PER_BLOCK>>>
@@ -1694,7 +1699,6 @@ void PDsolverCuda::update_local()
     }
 
     // At*proj + mom
-    //cudaBindTexture(NULL, rhs_tex, d_projections, 3*num_projections_*sizeof(float));
     k_prepare_rhs<<<(d_At2_.n_rows + THREADS_PER_BLOCK - 1)/THREADS_PER_BLOCK, THREADS_PER_BLOCK, 3*d_At2_.n_maxNNZperBlock*sizeof(float)>>>
     (tex_proj_, d_At2_.ellvalues, d_At2_.ellcols, d_At2_.crsvalues, d_At2_.cols, d_At2_.row_ptr, d_momentum, d_Atppmom_, d_At2_.n_rows, num_projections_);
 
@@ -1704,12 +1708,10 @@ void PDsolverCuda::update_global()
 {
 
     // PCG
-    //cudaBindTexture(NULL, rhs_tex, d_points, 3*num_points_*sizeof(float));
     k_init_PCG<<<(d_S_.n_rows + THREADS_PER_BLOCK - 1)/THREADS_PER_BLOCK, THREADS_PER_BLOCK>>>
     (tex_points_, d_S_.diagvalues, d_S_.ellvalues, d_S_.ellcols, d_S_.crsvalues, d_S_.cols, d_S_.row_ptr, d_d_, d_r_, d_greek_ ,d_Atppmom_, d_S_.n_rows);
 
     int i = 0;
-    //cudaBindTexture(NULL, rhs_tex, d_d_, 3*d_S_.n_rows*sizeof(float));
     while(i < 10)
     {
 
@@ -1733,8 +1735,6 @@ void PDsolverCudaCollisions::update_local()
 {
     PDsolverCuda::update_local();
 
-    //cudaBindTexture(NULL, rhs_tex, d_points, 3*num_points_*sizeof(float));
-
     k_collision_projection<<<(collisions_.size()/4 + THREADS_PER_BLOCK - 1)/THREADS_PER_BLOCK, THREADS_PER_BLOCK>>>
     (tex_points_, d_collisionprojections_, d_collisionIndices_, weight_col_, collisions_.size()/4, collisions_.size()/4 - num_handCols_);
 
@@ -1749,7 +1749,6 @@ void PDsolverCudaCollisions::update_global()
     (tex_points_, d_S_.diagvalues, d_S_.ellvalues, d_S_.ellcols, d_S_.crsvalues, d_S_.cols, d_S_.row_ptr, d_colcsrvals, d_colcsrcols, d_colcsrrptr, d_d_, d_r_, d_greek_ ,d_Atppmom_, d_S_.n_rows);
 
     int i = 0;
-    //cudaBindTexture(NULL, rhs_tex, d_d_, 3*d_S_.n_rows*sizeof(float));
     while(i < 10)
     {
         k_PCG1_collisions<<<(d_S_.n_rows + THREADS_PER_BLOCK - 1)/THREADS_PER_BLOCK, THREADS_PER_BLOCK, 3*(d_S_.n_maxNNZperBlock + 6*(collisions_.size()/4))*sizeof(float)>>>
@@ -1767,10 +1766,10 @@ void PDsolverCudaCollisions::update_global()
 }
 
 
-void PDsolverCuda::update_ogl_sim_mesh_buffers(float *vbo, float *nbo)
+void PDsolverCuda::update_ogl_sim_mesh_buffers(float *vbo, float *nbo, size_t num_bytes)
 {
-    cudaMemcpy(vbo ,d_points, 3*num_unified_points_*sizeof(float), cudaMemcpyDeviceToDevice);
-    cudaMemcpy(nbo ,d_vertex_normals, 3*num_unified_points_*sizeof(float), cudaMemcpyDeviceToDevice);
+    checkCudaErrors(cudaMemcpy(vbo ,d_points, num_bytes, cudaMemcpyDeviceToDevice));
+    checkCudaErrors(cudaMemcpy(nbo ,d_vertex_normals, num_bytes, cudaMemcpyDeviceToDevice));
 }
 
 //----------------------------------------------------------------------------------------------------------------------------------------------
@@ -1883,10 +1882,10 @@ void PDsolverCuda::init_cuda_data()
 
     //checkCudaErrors(cudaFree((void*)d_points));
 
-    cudaStreamCreate(&stream1_);
+    checkCudaErrors(cudaStreamCreate(&stream1_));
     cudaStreamCreate(&stream2_);
-    cudaEventCreateWithFlags(&event1_, cudaEventDisableTiming);
-    cudaEventCreateWithFlags(&event2_, cudaEventDisableTiming);
+    checkCudaErrors(cudaEventCreateWithFlags(&event1_, cudaEventDisableTiming));
+    checkCudaErrors(cudaEventCreateWithFlags(&event2_, cudaEventDisableTiming));
     checkCudaErrors(cudaHostRegister(p_points_->data(), num_unified_points_*3*sizeof(float), 0));
 }
 

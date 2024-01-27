@@ -12,7 +12,7 @@
 
 int main(int argc, char **argv)
 {
-    std::string skin_file_lr, skel_file, skin_file_hr, us_file, ini_filename, anim_file, anim_base;
+    std::string skin_file_lr, skel_file, skin_file_hr, us_file, ini_filename;
     if(argc < 2)
     {
         std::cerr << "Fast Projective Skinning needs at least\n"
@@ -39,19 +39,7 @@ int main(int argc, char **argv)
             {
                 skel_file = input;
             }
-        }
-        if(rebuild && !ini_filename.empty())
-        {
-            Preparation_Viewer skel_builder("Skeleton Builder", 800, 600);
-            skel_builder.build_from_ini(ini_filename.c_str());
-
-            // build
-            skel_builder.run();
-
-            if(!skel_builder.ini_filename_.empty() && skel_builder.ready_for_skinning_)
-                ini_filename = skel_builder.ini_filename_;
-            else
-                return 2;
+            std::cout << input << std::endl;
         }
 
         if(argc == 2 || rebuild)
@@ -71,7 +59,7 @@ int main(int argc, char **argv)
                 skel_builder.run();
 
                 if(!skel_builder.ini_filename_.empty())
-                    input = skel_builder.ini_filename_;
+                    ini_filename = skel_builder.ini_filename_;
                 else
                     return 2;
             }
@@ -85,7 +73,7 @@ int main(int argc, char **argv)
             {
                 std::cerr << "Error: " << skin_file_lr << " is no .off file." << std::endl;
             }
-            if(skel_file.find(".skel2") == skel_file.npos)
+            if(skel_file.find(".skel") == skel_file.npos || skel_file.find(".skel2") == skel_file.npos)
             {
                 std::cerr << "Error: " << skel_file << " is no .skel file." << std::endl;
             }
@@ -99,60 +87,9 @@ int main(int argc, char **argv)
                 }
 
                 us_file = std::string(argv[4]);
-                if(us_file.find(".txt") == us_file.npos)
+                if(us_file.find(".txt") == us_file.npos || us_file.find(".binus") == us_file.npos)
                 {
-                    std::cerr << "Error: " << us_file << " is no .txt file." << std::endl;
-                }
-            }
-        }
-
-        // parse ini file if build or given
-        if(input.find(".ini") != input.npos || !ini_filename.empty())
-        {
-            // init from .ini file
-            std::string ini_file = ini_filename.empty() ? input : ini_filename;
-            std::string ini_location = ini_file.substr(0, ini_file.rfind("/") + 1);
-            std::ifstream ifs(ini_file.c_str());
-            if(!ifs)
-            {
-                std::cerr << "Could not read file: " << ini_file << std::endl;
-                return 3;
-            }
-            std::string line;
-            while(std::getline(ifs,line))
-            {
-                std::stringstream ss_line(line);
-                std::string header,info, base;
-
-                ss_line >> header >> info >> base;
-                std::cout << line << std::endl;
-
-                // get rid of " to support spaces in filenames
-                if(info[0] == '"')
-                {
-                    info = info.substr(1,info.find_last_of('"')-1);
-                }
-
-                if(header == "SIMMESH")
-                {
-                    skin_file_lr = ini_location + info;
-                }
-                else if(header == "SKELETON")
-                {
-                    skel_file = ini_location + info;
-                }
-                else if(header == "VISMESH")
-                {
-                    skin_file_hr = ini_location + info;
-                }
-                else if(header == "UPSAMPLING")
-                {
-                    us_file = ini_location + info;
-                }
-                else if(header == "ANIMATION")
-                {
-                    anim_file = ini_location + info;
-                    anim_base = base;
+                    std::cerr << "Error: " << us_file << " is no upsampling file." << std::endl;
                 }
             }
         }
@@ -160,7 +97,7 @@ int main(int argc, char **argv)
 
 
   Skinning_Viewer viewer("Fast Projective Skinning", 800, 600);
-  viewer.init(skin_file_lr.c_str(),skel_file.c_str(), skin_file_hr.c_str(), us_file.c_str(), anim_file, anim_base);
+  viewer.init(ini_filename, skin_file_lr.c_str(),skel_file.c_str(), skin_file_hr.c_str(), us_file.c_str());
   return viewer.run();
 
 }

@@ -684,16 +684,16 @@ void Preparation_Viewer::process_imgui()
                 ofs << "SIMMESH ";
                 if(!mesh_LR_filename_.empty() && !us_filename_.empty())
                 {
-                    ofs << mesh_LR_filename_ << "\n";
-                    ofs << "VISMESH " << filename_ << "\n";
-                    ofs << "UPSAMPLING " << us_filename_ << "\n";
+                    ofs << get_filename_from_path(mesh_LR_filename_) << "\n";
+                    ofs << "VISMESH " << get_filename_from_path(filename_) << "\n";
+                    ofs << "UPSAMPLING " << get_filename_from_path(us_filename_) << "\n";
                 }
                 else
                 {
-                    ofs << filename_ << "\n";
+                    ofs << get_filename_from_path(filename_) << "\n";
                 }
 
-                ofs << "SKELETON " << skel_filename_ << "\n";
+                ofs << "SKELETON " << get_filename_from_path(skel_filename_) << "\n";
                 ofs.close();
 
                 std::cout << "Created .ini file: " << ini_filename_ << std::endl;
